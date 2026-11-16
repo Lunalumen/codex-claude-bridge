@@ -1,0 +1,4 @@
+.bridge/
+__pycache__/
+*.pyc
+questions/publication/
