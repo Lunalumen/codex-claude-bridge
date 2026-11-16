@@ -1,34 +1,171 @@
-# AI 연결 기술 개발
+<p align="center">
+  <img src="docs/assets/banner-codex.png" alt="Codex Claude Bridge — 두 AI가 같은 작업을 이어서 이야기하도록 잇는 작은 다리" width="100%">
+</p>
 
-사용자 지정일: 2026-11-15.
-작업 위치: `E:/스텔라 ai/모음 파일/clude와 gpt에 연결 기술/`.
+<p align="center">
+  <b>ChatGPT/Codex가 Claude에게 질문하고, 같은 작업의 대화를 이어갈 수 있게 해 주는 터미널 도구.</b><br>
+  파이썬 파일 하나 · 외부 패키지 없음 · API 키 없음
+</p>
 
-이 폴더는 AI 연결 기술을 개발하는 프로젝트다. 사용자 정정(2026-11-16)에 따라 기술 개발 담당은 ChatGPT/Codex이며 Claude는 개발 담당에서 제외한다. Claude를 지원하는 연결 기능 자체는 유지한다.
+<p align="center">
+  <img alt="Python 3.9+" src="https://img.shields.io/badge/python-3.9%2B-3b2362">
+  <img alt="Tests" src="https://img.shields.io/badge/offline%20tests-13%20passed-2f7d5b">
+  <img alt="Status" src="https://img.shields.io/badge/status-working%20prototype-25205a">
+</p>
 
-## 현재 확인한 위치
-- Claude 작업 폴더: `E:/스텔라 ai/claude/`.
-- 공통 Stella 스킬: `E:/스텔라 ai/claude/skills/`.
-- 기존 Claude → 새 Codex 브리지: `E:/스텔라 ai/claude/프로젝트 파일/codex-mcp/server.py`.
-- 기존 협의 절차: `E:/스텔라 ai/claude/collaboration/WORKFLOW.md`.
-- Stella Memory 협의: `E:/스텔라 ai/claude/collaboration/tasks/stella-memory-001/`.
-- 사용자 ChatGPT 영역: `E:/스텔라 ai/chatgpt/` (내용은 이번에 읽지 않음).
+---
 
-예전 `E:/claude/`는 현재 존재하지 않는다. 이전 보고서의 경로·전역 연결 설정이 자동으로 바뀌었다고 가정하지 않는다.
+## 한눈에 보기
 
-## 개발 목표와 현재 경계
-1. 프로젝트 안내에서 현재 작업·최신 보고서·다음 담당을 바로 찾는다.
-2. 작업별 요청·답변·결정·미해결 사항을 공유한다.
-3. 기존 브리지의 실제 새 경로와 초기 연결을 확인한다.
-4. 대화 ID 보관과 이어가기, Codex → Claude 역방향 연결은 각각 구현 가능 조건을 확인한 뒤 개발한다.
+AI 두 개를 함께 쓰면 늘 같은 문제가 생깁니다. **한쪽이 한 이야기를 다른 쪽은 모릅니다.**
+결국 사람이 대화를 복사해서 옮겨 붙이게 되죠.
 
-앞선 옛 경로에서 확인한 브리지는 Claude가 새 Codex 실행에 질문하는 단방향 구조였다. 현재 채팅을 깨우는 기능·작업별 대화 이어가기·역방향 호출은 검증되지 않았다. 폴더 이전 이후 모델 질문 왕복도 아직 재시험하지 않았다.
+Codex Claude Bridge는 그 복사·붙여넣기를 대신합니다.
 
-이번 작업은 폴더와 개발 기준을 마련한 것이다. 기존 코드 이동·전역 설정 변경·모델 호출은 하지 않았다.
+| | 이전 | 이후 |
+|---|---|---|
+| 질문 전달 | 사람이 직접 복사해서 붙여넣기 | 명령 한 줄 |
+| 이전 대화 | 매번 처음부터 다시 설명 | 작업 이름만 같으면 자동으로 이어짐 |
+| 기록 | 채팅창에 흩어짐 | 작업별 폴더에 질문·답변이 정리됨 |
 
-## Codex → Claude 연결 프로그램 · 2026-11-15
-터미널 진입점은 bridge.py, 사용법은 BRIDGE_GUIDE.md, 현재 확인 범위와 로그인 대기는 CONNECTION_STATUS.md를 따른다. bridge.py status / ask / history로 사용한다. 실제 모델 왕복 성공과 오프라인 합성 시험은 구분한다.
+---
 
+## 작동 방식
 
-## 실제 연결 확인 · 2026-11-15
-Codex → Claude 질문과 같은 작업 대화 이어가기의 실제 왕복을 확인했다. VALIDATION_TERMINAL_2026-11-15.md와 bridge.py history --task connection-check를 참조한다. 기존 데스크톱 대화를 제어하는 기능은 아니다.
+<p align="center">
+  <img src="docs/assets/how-it-works.png" alt="묻기 → 잇기 → 남기기: Codex가 질문 파일을 bridge.py로 보내고, 같은 작업 이름이면 이전 대화를 이어 열고, 질문과 답변을 .bridge/tasks/<작업>/ 에 기록합니다" width="100%">
+</p>
 
+<details>
+<summary><b>한 번의 질문이 오가는 순서 자세히 보기</b></summary>
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as 사용자
+    participant C as ChatGPT · Codex
+    participant B as bridge.py
+    participant L as Claude Code CLI<br/>(공식 프로그램)
+
+    U->>C: "이 설계, Claude 의견도 물어봐 줘"
+    C->>B: ask --task 설계검토 --question-file 질문.md
+    B->>B: 로그인 확인 · 질문 기록 저장
+    B->>L: 질문 전달 (도구 사용 금지 모드)
+    L-->>B: 답변
+    B-->>C: 답변 + 저장 위치
+    Note over B: 같은 --task로 다시 물으면<br/>이전 대화를 이어서 답합니다
+```
+
+</details>
+
+세 단계로 정리하면 이렇습니다.
+
+1. **묻기** — Codex가 질문을 파일로 써서 `bridge.py ask`로 보냅니다.
+2. **잇기** — 작업 이름(`--task`)마다 대화 번호를 기억해 두었다가, 다음 질문 때 그 대화를 이어 엽니다.
+3. **남기기** — 질문과 답변이 `.bridge/tasks/<작업>/` 아래에 차례대로 저장됩니다. 나중에 누가 무엇을 물었는지 바로 확인할 수 있습니다.
+
+---
+
+## 시작하기
+
+**준비물:** Python 3.9 이상, 그리고 로그인된 [Claude Code CLI](https://code.claude.com/docs/en/cli-reference).
+
+```bash
+# 1. 연결 상태 확인
+python -B -X utf8 bridge.py status
+
+# 2. 질문 보내기
+python -B -X utf8 bridge.py ask --task my-task --question-file questions/connection-check.md
+
+# 3. 같은 작업으로 이어서 묻기
+python -B -X utf8 bridge.py ask --task my-task --question-file questions/resume-check.md
+
+# 4. 지금까지의 기록 보기
+python -B -X utf8 bridge.py history --task my-task
+```
+
+참고 문서를 함께 보내고 싶다면 `--context 파일.md`를 붙이세요. 최대 4개, 합쳐서 2만 자까지 보낼 수 있습니다.
+
+<details>
+<summary><b>명령어 전체 보기</b></summary>
+
+| 명령 | 하는 일 |
+|---|---|
+| `status` | Claude CLI 위치와 로그인 상태를 보여 줍니다 |
+| `ask --task <이름> --question-file <파일>` | 질문을 보내고 답을 저장합니다 |
+| `ask ... --context <파일>` | 참고 문서를 함께 보냅니다 (여러 번 사용 가능) |
+| `ask ... --new-session` | 이전 대화를 잇지 않고 새로 시작합니다 |
+| `ask ... --timeout <초>` | 응답 대기 시간 (10~300초, 기본 120초) |
+| `history --task <이름>` | 해당 작업의 질문·답변 기록을 보여 줍니다 |
+
+</details>
+
+---
+
+## 안전하게 설계했습니다
+
+연결 도구는 편리한 만큼 조심해야 합니다. 이 도구는 **할 수 있는 일을 일부러 좁게** 만들었습니다.
+
+```mermaid
+flowchart LR
+    Q[질문 + 참고 문서] --> G{검사}
+    G -- 프로젝트 밖 파일 --> X1[거부]
+    G -- .git · .bridge 같은 내부 파일 --> X2[거부]
+    G -- 2만 자 초과 --> X3[거부]
+    G -- 통과 --> S[Claude에게 전달<br/>도구·파일 접근 없음]
+```
+
+- 🔑 **API 키를 쓰지 않습니다.** 공식 CLI의 기존 로그인만 사용하고, 인증 정보를 읽거나 복사하지 않습니다.
+- 🧰 **Claude는 답변만 합니다.** 파일 수정, 명령 실행, 다른 AI 호출 같은 도구 사용을 모두 끈 상태로 묻습니다.
+- 📁 **보낼 파일은 직접 고릅니다.** 폴더 통째로 보내지 않고, 지정한 `.md`·`.txt` 파일만 보냅니다.
+- 🔁 **실패해도 다시 보내지 않습니다.** 오류가 나면 그대로 멈추고 기록을 남깁니다. 다시 시작할지는 사람이 정합니다.
+- 🔒 **한 작업에 한 번에 한 질문만.** 같은 작업이 동시에 실행되지 않도록 잠금을 겁니다.
+- 🙈 **기록은 내 컴퓨터에만.** `.bridge/` 폴더는 Git에서 제외되어 공개 저장소에 올라가지 않습니다.
+
+---
+
+## 지금 되는 것과 아직 안 되는 것
+
+| 기능 | 상태 |
+|---|---|
+| Codex → Claude 질문 보내기 | ✅ 실제 연결로 확인 |
+| 같은 작업 대화 이어가기 | ✅ 실제 연결로 확인 ([검증 기록](VALIDATION_TERMINAL_2026-11-15.md)) |
+| 오프라인 자동 테스트 | ✅ 13개 통과 |
+| Claude → Codex 반대 방향 | 🔜 아직 개발하지 않음 |
+| 이미 열려 있는 채팅창에 바로 연결 | ✖ 지원하지 않음 (작업마다 별도 대화를 엽니다) |
+
+> [!NOTE]
+> 질문할 때마다 Claude 구독 사용량이 조금씩 들어갑니다. 비용이나 토큰이 얼마나 줄어드는지는 아직 측정하지 않았습니다.
+
+---
+
+## 테스트
+
+```bash
+python -B -X utf8 test_bridge.py -v
+```
+
+가짜 클라이언트로 실행하므로 인터넷도 로그인도 필요 없습니다. 이 테스트의 답변은 가짜이며, 실제 연결 결과는 [검증 기록](VALIDATION_TERMINAL_2026-11-15.md)에 따로 정리했습니다.
+
+---
+
+## 폴더 구성
+
+```text
+.
+├── bridge.py                  # 연결 프로그램 본체
+├── test_bridge.py             # 오프라인 테스트 13개
+├── questions/                 # 보낼 질문 파일
+├── BRIDGE_GUIDE.md            # 자세한 사용 설명
+├── CONNECTION_STATUS.md       # 연결 상태 기록
+├── VALIDATION_TERMINAL_*.md   # 실제 연결 검증 기록
+└── docs/
+    ├── PROJECT_NOTES.md       # 개발 메모
+    └── assets/                # 그림 파일
+```
+
+---
+
+<p align="center">
+  Made by <a href="https://github.com/Lunalumen">Stella</a> 🌙
+</p>
