@@ -1,5 +1,9 @@
 # 변경 기록
 
+## 2026-11-23 · Codex 브리지 허용 폴더 목록 (코드 미공개)
+
+[#2](https://github.com/Lunalumen/codex-claude-bridge/issues/2) 과제를 업그레이드 Codex 브리지에 구현했습니다. 다만 업그레이드 코드(`tools/`)가 아직 이 저장소에 올라오지 않아서 **공개 저장소에서는 아직 쓸 수 없습니다**(공개 전 점검: [#5](https://github.com/Lunalumen/codex-claude-bridge/issues/5)). 쓰는 법은 이렇습니다. 환경변수 `STELLA_CODEX_EXTRA_ROOTS`에 허용 폴더를 적으면(Windows `;`, 그 밖 `:` 구분), 연결 폴더 밖의 다른 프로젝트 폴더도 Codex의 작업 폴더로 지정할 수 있습니다. 설정이 없으면 예전처럼 연결 폴더 하나만 허용합니다. 거부되는 설정도 있습니다. 실제 경로가 아닌 것(바로가기·정션·8.3 짧은 이름·`subst`), `\\?\`·UNC·네트워크 드라이브 표기, 홈·문서 폴더 전체나 `.ssh`·`.codex`·`.claude`·PowerShell 프로필처럼 넓거나 민감한 폴더, 서로 겹치는 폴더는 경로를 드러내지 않고 오류 이름만 돌려주며 거부합니다. 허용 폴더에서도 요청하면 쓰기(`workspace-write`)가 열리므로 필요한 폴더만 넣어야 합니다. 보안 점검은 3회 거쳐 통과했습니다(3회차는 사용자가 예외로 허락). 개발자 PC(Windows, Python 3.13)에서 오프라인 시험 64개를 돌려 실패 0이었습니다(건너뜀 1: 심볼릭 링크 권한 없음). 실제 모델 호출, MCP 호스트 재연결, POSIX·macOS 환경은 확인하지 않았습니다. 설정을 바꾸면 MCP를 다시 연결해야 합니다. 남은 "낮음" 한계는 별도 과제로 정리했습니다: [#6](https://github.com/Lunalumen/codex-claude-bridge/issues/6), [#7](https://github.com/Lunalumen/codex-claude-bridge/issues/7), [#8](https://github.com/Lunalumen/codex-claude-bridge/issues/8), [#9](https://github.com/Lunalumen/codex-claude-bridge/issues/9).
+
 ## 2026-11-17 · 양방향 브리지 업그레이드 (코드 미공개)
 
 > [!IMPORTANT]
